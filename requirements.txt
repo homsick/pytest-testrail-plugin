@@ -1,0 +1,4 @@
+urllib3
+testrail_api
+pytest
+allure-pytest
