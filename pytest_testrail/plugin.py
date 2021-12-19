@@ -45,13 +45,17 @@ def get_tests(items):
     list_cases = []  # Список всех собранных тестов c информацией
 
     for item in items:
+        print(item.report.capstdout)
+        print(item.fixturenames)
+        print(item.nodeid)
+
         if item.cls:
             case_class = f'{item.cls.__name__} | '
         else:
             case_class = ''
         list_cases.append(
             [item.location[0], item.module.__name__, case_class, item.name, item.location[1],
-             [m for m in item.iter_markers()]])
+             item.own_markers])
 
     # КОСТЫЛЬ ДЛЯ ПЕРЕВОРОТА СПИСКА
     reversed_list_tests = []  # Перевернутый список всех собранных кейсов c информацией
