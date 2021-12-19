@@ -21,8 +21,7 @@ PYTEST_TO_TESTRAIL_STATUS = {
 }
 
 
-
-class testrail(object):
+class Testrail(object):
 
     @staticmethod
     def case_id(id):
@@ -35,8 +34,10 @@ class testrail(object):
         """
         return pytest.mark.case_id(id)
 
+
 def case_id(*ids):
-    return testrail.case_id(*ids)
+    return Testrail.case_id(*ids)
+
 
 # Создание списка всех собранных тестов c информацией
 def get_tests(items):
@@ -58,6 +59,7 @@ def get_tests(items):
         reversed_list_tests.append(item)
     return reversed_list_tests
 
+
 class TestRailAPISingle(TestRailAPI, object):
 
     # Переменные необходимые для ТестРейла
@@ -72,7 +74,6 @@ class TestRailAPISingle(TestRailAPI, object):
     SECTION_ID = 1  # или же group_id
     CASE_TAG = '@testrail.case_id'  #
 
-
     def __init__(self):
         super().__init__(CONFIG.TEST_RAIL_URL, CONFIG.TEST_RAIL_EMAIL, CONFIG.TEST_RAIL_PASSWORD, verify=False)
 
@@ -82,7 +83,7 @@ class TestRailAPISingle(TestRailAPI, object):
     @pytest.hookimpl(trylast=True)
     def pytest_collection_modifyitems(self, session, config, items):
         urllib3.disable_warnings()
-        if config.getoption('add_cases_from_testrail'):
+        if config.getoption('tr_add_cases'):
 
             section_id = self.SECTION_ID  # group_id
             case_tag = self.CASE_TAG
@@ -101,7 +102,7 @@ class TestRailAPISingle(TestRailAPI, object):
 
                 print(f'\nПУТЬ - {test_location}\n'
                       f'ИМЯ ФАЙЛА - {file_name}\n'
-                      f'ИМЯ КЛАССА - {test_class}'
+                      f'ИМЯ КЛАССА - {test_class}\n'
                       f'ИМЯ КЕЙСА - {test_name}\n'                      
                       f'СТРОКА - {test_line}\n'
                       f'СПИСОК МАРКЕРОВ - {list_test_markers}'
@@ -134,7 +135,6 @@ class TestRailAPISingle(TestRailAPI, object):
                     for marker in list_test_markers:
                         # Если есть маркер parametrize
                         if marker.name == "parametrize":
-                            print(marker.name)
                             file = open(test_location, 'r', encoding="utf8")
                             lines = [line for line in file]  # Все стройки файла
                             needed_line = lines[test_line]
@@ -154,12 +154,16 @@ class TestRailAPISingle(TestRailAPI, object):
                         # Добавление маркера case_id в файл
                         file = open(test_location, 'r', encoding="utf8")
                         lines = [line for line in file]  # Все стройки файла
-                        lines[
-                            test_line - 1] = f'\n{lines[test_line - 1].replace(lines[test_line - 1], case_tag)}({str(testrail_case_id)})\n'
+                        lines[test_line - 1] = f'\n{get_spaces(lines[test_line])}{lines[test_line - 1].replace(lines[test_line - 1], case_tag)}({str(testrail_case_id)})\n'
                         with open(test_location, 'w', encoding="utf8") as file:
                             file.write(''.join(lines))
 
             print(f'Список всех найденных case_id - {list_cases_id}')
+
+
+def get_spaces(string):
+    return " "*(len(string) - len(string.lstrip(' ')))
+
 
 class PyTestRailPlugin(object):
     def __init__(self,test):

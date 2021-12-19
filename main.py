@@ -15,7 +15,6 @@ class TestRailAPISingle(TestRailAPI):
 
     def __init__(self):
         super().__init__(CONFIG.TEST_RAIL_URL, CONFIG.TEST_RAIL_EMAIL, CONFIG.TEST_RAIL_PASSWORD, verify=False)
-        urllib3.disable_warnings()
 
         self.milestone_id = 0 # type: int
         self.run_id = 0 # type: int
