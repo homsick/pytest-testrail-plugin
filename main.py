@@ -64,7 +64,7 @@ class TestRailAPISingle(TestRailAPI):
         self.run_id = run.get('id')
 if __name__ == '__main__':
     pass
-    #pytest.main(["--add_cases_from_testrail", "tests/test_file.py"])
+    pytest.main(["--add_cases_from_testrail", "tests/test_file.py"])
     #tr = TestRailAPISingle()
     #tr.cllll()
     #tr.create_cases_from_tests(CONFIG.TEST_RAIL_FILES)

@@ -20,8 +20,7 @@ class TestGroup:
     def test_something_else(self):
         assert True
 
-    @testrail.case_id(84)
-    @testrail.case_id(83)
+@testrail.case_id(102)
     @pytest.mark.luboi
     @pytest.mark.parametrize("a, b, expected_result", [(5, 10, 150), (10, 51, 150)])
     def test_something_wrong(self, a, b, expected_result):

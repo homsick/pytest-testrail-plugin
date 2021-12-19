@@ -129,28 +129,35 @@ class TestRailAPISingle(TestRailAPI, object):
 
                 # Если маркера case_id нет
                 else:
-                    # for marker in list_test_markers:
+                    # Проверка если тест параметризированный есть ли в нем case_id
+                    param_with_case_id = False
+                    for marker in list_test_markers:
                         # Если есть маркер parametrize
-                        # if marker.name == "parametrize":
-                            # print(marker.args[0])
-                            # print(marker.args[1])
-
-                    print('Тест без case_id. Создание case_id в TestRail...')
-
+                        if marker.name == "parametrize":
+                            print(marker.name)
+                            file = open(test_location, 'r', encoding="utf8")
+                            lines = [line for line in file]  # Все стройки файла
+                            needed_line = lines[test_line]
+                            if case_tag in needed_line:
+                                param_with_case_id = True
                     # Создание кейса в TestRail
-                    case = self.cases.add_case(
-                        section_id=section_id, title=title,
-                        template_id=self.TEMPLATE_ID_STEPS, type_id=self.TYPE_ID_AUTOMATED,
-                        custom_tcstatus=self.STATUS_ACTUAL, custom_steps="Тестовый текст для поля Steps")
-                    testrail_case_id = case.get('id')
-                    list_cases_id.append(testrail_case_id)
+                    # Если параметризированный тест не имеет case_id
+                    if param_with_case_id == False:
+                        print('Тест без case_id. Создание case_id в TestRail...')
+                        case = self.cases.add_case(
+                            section_id=section_id, title=title,
+                            template_id=self.TEMPLATE_ID_STEPS, type_id=self.TYPE_ID_AUTOMATED,
+                            custom_tcstatus=self.STATUS_ACTUAL, custom_steps="Тестовый текст для поля Steps")
+                        testrail_case_id = case.get('id')
+                        list_cases_id.append(testrail_case_id)
 
-                    # Добавление маркера case_id в файл
-                    file = open(test_location, 'r', encoding="utf8")
-                    lines = [line for line in file]  # Все стройки файла
-                    lines[test_line-1] = f'\n{lines[test_line-1].replace(lines[test_line-1], case_tag)}({str(testrail_case_id)})\n'
-                    with open(test_location, 'w', encoding="utf8") as file:
-                        file.write(''.join(lines))
+                        # Добавление маркера case_id в файл
+                        file = open(test_location, 'r', encoding="utf8")
+                        lines = [line for line in file]  # Все стройки файла
+                        lines[
+                            test_line - 1] = f'\n{lines[test_line - 1].replace(lines[test_line - 1], case_tag)}({str(testrail_case_id)})\n'
+                        with open(test_location, 'w', encoding="utf8") as file:
+                            file.write(''.join(lines))
 
             print(f'Список всех найденных case_id - {list_cases_id}')
 
