@@ -1,6 +1,11 @@
+import fileinput
+import inspect
 import re
+import sys
 
 import pytest
+from _pytest._code import getrawcode
+from _pytest._io.saferepr import safeformat
 
 from testrail_api import TestRailAPI
 from pytest_testrail.config import CONFIG
@@ -43,19 +48,20 @@ def case_id(*ids):
 def get_tests(items):
 
     list_cases = []  # Список всех собранных тестов c информацией
-
+    lines = []
+    line_index = 0
     for item in items:
-        print(item.report.capstdout)
+
+        print(safeformat(item.obj))
         print(item.fixturenames)
         print(item.nodeid)
-
         if item.cls:
             case_class = f'{item.cls.__name__} | '
         else:
             case_class = ''
         list_cases.append(
             [item.location[0], item.module.__name__, case_class, item.name, item.location[1],
-             item.own_markers])
+             item.own_markers, inspect.getsource(item.obj)])
 
     # КОСТЫЛЬ ДЛЯ ПЕРЕВОРОТА СПИСКА
     reversed_list_tests = []  # Перевернутый список всех собранных кейсов c информацией
@@ -76,7 +82,7 @@ class TestRailAPISingle(TestRailAPI, object):
     TYPE_ID_AUTOMATED = 3  # Типы тестов
     STATUS_ACTUAL = 1  # Кастомные статусы
     SECTION_ID = 1  # или же group_id
-    CASE_TAG = '@testrail.case_id'  #
+    CASE_TAG = '@Testrail.case_id'  #
 
     def __init__(self):
         super().__init__(CONFIG.TEST_RAIL_URL, CONFIG.TEST_RAIL_EMAIL, CONFIG.TEST_RAIL_PASSWORD, verify=False)
@@ -102,6 +108,7 @@ class TestRailAPISingle(TestRailAPI, object):
                 test_name = item[3]  # Имя теста
                 test_line = item[4]  # Строка на которой находится тест
                 list_test_markers = item[5]  # Список маркеров теста
+                source_code = item[6] # Полный текст теста
                 testrail_case_id = 0  # case_id для TestRail
 
                 print(f'\nПУТЬ - {test_location}\n'
@@ -109,7 +116,8 @@ class TestRailAPISingle(TestRailAPI, object):
                       f'ИМЯ КЛАССА - {test_class}\n'
                       f'ИМЯ КЕЙСА - {test_name}\n'                      
                       f'СТРОКА - {test_line}\n'
-                      f'СПИСОК МАРКЕРОВ - {list_test_markers}'
+                      f'СПИСОК МАРКЕРОВ - {list_test_markers}\n'
+                      f'ПОЛНЫЙ ТЕКСТ ТЕСТА - \n{source_code}'
                       )
 
                 find_case_id_marker = False  # Проверка найден ли marker с case_id
@@ -144,6 +152,7 @@ class TestRailAPISingle(TestRailAPI, object):
                             needed_line = lines[test_line]
                             if case_tag in needed_line:
                                 param_with_case_id = True
+                            file.close()
                     # Создание кейса в TestRail
                     # Если параметризированный тест не имеет case_id
                     if param_with_case_id == False:
@@ -151,7 +160,7 @@ class TestRailAPISingle(TestRailAPI, object):
                         case = self.cases.add_case(
                             section_id=section_id, title=title,
                             template_id=self.TEMPLATE_ID_STEPS, type_id=self.TYPE_ID_AUTOMATED,
-                            custom_tcstatus=self.STATUS_ACTUAL, custom_steps="Тестовый текст для поля Steps")
+                            custom_tcstatus=self.STATUS_ACTUAL, custom_steps=source_code)
                         testrail_case_id = case.get('id')
                         list_cases_id.append(testrail_case_id)
 
@@ -166,6 +175,7 @@ class TestRailAPISingle(TestRailAPI, object):
 
 
 def get_spaces(string):
+    space_prefix = "    "
     return " "*(len(string) - len(string.lstrip(' ')))
 
 
