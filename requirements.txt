@@ -1,4 +1,4 @@
 urllib3
 testrail_api
 pytest
-allure-pytest
+allure-pytest == 2.8.18
