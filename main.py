@@ -1,11 +1,13 @@
 from testrail_api import TestRailAPI
+
+from pytest_testrail.plugin import *
 from pytest_testrail.config import CONFIG
 import urllib3
 import datetime
 import pytest
 
 
-class TestRailAPISingle(TestRailAPI):
+class TdssdestRailAPISingle(TestRailAPI):
 
     # Переменные необходимые для ТестРейла
     TEMPLATE_ID_TEXT = 1 # Виды кейсов
@@ -56,15 +58,12 @@ class TestRailAPISingle(TestRailAPI):
             return
 
         milestone_name = self.milestone.get_milestone(self.milestone_id).get('name')
-        run = self.runs.add_run(
-            self.project_id,
-            name=f'{CONFIG.TEST_RAIL_AUTOTEST_PREFIX} {milestone_name} ___ {datetime.datetime.now()}',
-            milestone_id=self.milestone_id, include_all=False)
-        self.run_id = run.get('id')
+
 if __name__ == '__main__':
     pass
     pytest.main(["--tr_add_cases"])
-    #tr = TestRailAPISingle()
+    # print(get_collected_testes())
+    #
     #tr.cllll()
     #tr.create_cases_from_tests(CONFIG.TEST_RAIL_FILES)
     #print(pytest.main(["tests/connection_test.py"]))

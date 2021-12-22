@@ -26,10 +26,7 @@ class Config:
         self.TEST_RAIL_PASSWORD: str = config_get(config.get, section, 'PASSWORD')
         self.TEST_RAIL_TAG_GROUP_ID: str = config_get(config.get, section, 'TAG_GROUP_ID')
         self.TEST_RAIL_TAG_CASE_ID: str = config_get(config.get, section, 'TAG_CASE_ID')
-        self.TEST_RAIL_NAME_AUTOTEST_PREFIX: str = config_get(config.get, section, 'NAME_AUTOTEST_PREFIX')
-        self.TEST_RAIL_FILES: str = config_get(config.get, section, 'FILES')
-        self.TEST_RAIL_MARKS: str = config_get(config.get, section, 'MARKS')
-        self.TEST_RAIL_TEST_DIR: str = config_get(config.get, section, 'TEST_DIR')
+        self.TEST_RAIL_AUTOTEST_PREFIX: str = config_get(config.get, section, 'AUTOTEST_PREFIX')
 
 
 CONFIG: Config = Config()

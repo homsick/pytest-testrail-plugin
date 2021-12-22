@@ -1,3 +1,4 @@
+import datetime
 import fileinput
 import inspect
 import re
@@ -44,40 +45,7 @@ def case_id(*ids):
     return Testrail.case_id(*ids)
 
 
-# Создание списка всех собранных тестов c информацией
-def get_tests(items):
-
-    list_cases = []  # Список всех собранных тестов c информацией
-    lines = []
-    line_index = 0
-    for item in items:
-        #envnames = [mark.args[0] for mark in item.iter_markers(name="parametrize")]
-        #print(envnames)
-        #envnames = [mark.args[1][0] for mark in item.iter_markers(name="parametrize")]
-        #print(envnames)
-       # envnames = [mark.args[1][1][0] for mark in item.iter_markers(name="parametrize")]
-        #print(envnames)
-        #envnames = [mark.args[1][2] for mark in item.iter_markers(name="parametrize")]
-        #print(envnames)
-        for mark in item.iter_markers(name="parametrize"):
-            print("parametrize args={}".format(mark.args))
-
-        if item.cls:
-            case_class = f'{item.cls.__name__} | '
-        else:
-            case_class = ''
-        list_cases.append(
-            [item.location[0], item.module.__name__, case_class, item.name, item.location[1],
-             item.own_markers, inspect.getsource(item.obj), item.nodeid])
-
-    # КОСТЫЛЬ ДЛЯ ПЕРЕВОРОТА СПИСКА
-    reversed_list_tests = []  # Перевернутый список всех собранных кейсов c информацией
-    for item in reversed(list_cases):
-        reversed_list_tests.append(item)
-    return reversed_list_tests
-
-
-class TestRailAPISingle(TestRailAPI, object):
+class TestRailAPISingle(TestRailAPI):
 
     # Переменные необходимые для ТестРейла
 
@@ -97,33 +65,36 @@ class TestRailAPISingle(TestRailAPI, object):
         self.milestone_id = 0  # type: int
         self.run_id = 0  # type: int
         self.project_id = 1
+        self.list_cases_id = []
 
     @pytest.hookimpl(trylast=True)
     def pytest_collection_modifyitems(self, session, config, items):
         urllib3.disable_warnings()
         if config.getoption('tr_add_cases'):
 
+            sajkdhkashdka = get_tests_info(items)  # Перевернутый кортеж тестов c информацией
+
             section_id = self.SECTION_ID  # group_id
             case_tag = self.CASE_TAG
             list_cases_id = []  # Список id всех собранных тестов
-            reversed_list_tests = get_tests(items)  # Перевернутый список всех собранных кейсов c информацией
+
+            for item in sajkdhkashdka:
+                print(item[0])
 
             # Перебор списка всех тестов с информацией
-            for item in reversed_list_tests:
+            for item in sajkdhkashdka:
                 test_location = item[0]  # Полный путь к тесту
                 file_name = item[1]  # Имя файла
-                test_class = item[2]  # Имя класса
-                test_name = item[3]  # Имя теста
-                test_line = item[4]  # Строка на которой находится тест
-                list_test_markers = item[5]  # Список маркеров теста
-                source_code = item[6]  # Полный текст теста
-                title = item[7]  # Заголовок теста
+                test_name = item[2]  # Имя теста
+                test_line = item[3]  # Строка на которой находится тест
+                list_test_markers = item[4]  # Список маркеров теста
+                source_code = item[5]  # Полный текст теста
+                title = item[6]  # Заголовок теста
                 # title = f'{test_location} | {test_class}{test_name}'  # Генерируемый заголовок для TestRail
                 testrail_case_id = 0  # case_id для TestRail
 
                 print(f'\nПУТЬ - {test_location}\n'
                       f'ИМЯ ФАЙЛА - {file_name}\n'
-                      f'ИМЯ КЛАССА - {test_class}\n'
                       f'ИМЯ КЕЙСА - {test_name}\n'                      
                       f'СТРОКА - {test_line}\n'
                       f'СПИСОК МАРКЕРОВ - {list_test_markers}\n'
@@ -206,13 +177,84 @@ class TestRailAPISingle(TestRailAPI, object):
                             file.write(''.join(lines))
 
             print(f'Список всех найденных case_id - {list_cases_id}')
-        milestone_id = 1
+        self.milestone_id = 1
+        milestone_name = self.milestones.get_milestone(self.milestone_id)
         run = self.runs.add_run(
             self.project_id,
-            name=f'sdfjlksdjlkfdjsfjsdfslflsdjk',
-            milestone_id=milestone_id, include_all=False)
+            name=f'{datetime.datetime.now()}', #name=f'{CONFIG.TEST_RAIL_AUTOTEST_PREFIX} {milestone_name} ___ {datetime.datetime.now()}',
+            milestone_id=self.milestone_id, include_all=False)
         self.run_id = run.get('id')
         self.runs.update_run(self.run_id, case_ids=list_cases_id)
+        self.runs.close_run(self.run_id)
+        self.list_cases_id = list_cases_id
+
+    # def after(self):
+    #     if not self.milestone_id:
+    #         return
+    #
+    #     for case_id in list_cases_id:
+    #         status_id_case = TESTRAIL_TEST_STATUS(1)
+    #         if False:
+    #             status_id_case = TESTRAIL_TEST_STATUS(5)
+    #         self.results.add_result_for_case(self.run_id, case_id, status_id=status_id_case)
+
+    # def create_test_run(self, project_id, suite_id, include_all,
+    #                     testrun_name, tr_keys, milestone_id, description=''):
+    #     """
+    #     Создание тестового прогона
+    #     Create testrun with ids collected from markers.
+    #
+    #     :param tr_keys: collected testrail ids.
+    #     """
+    #     data = {
+    #         'suite_id': suite_id,
+    #         'name': testrun_name,
+    #         'description': description,
+    #         'assignedto_id': assign_user_id,
+    #         'include_all': include_all,
+    #         'case_ids': tr_keys,
+    #         'milestone_id': milestone_id
+    #     }
+    #
+    #     response = self.client.send_post(
+    #         ADD_TESTRUN_URL.format(project_id),
+    #         data,
+    #         cert_check=self.cert_check
+    #     )
+    #     error = self.client.get_error(response)
+    #     if error:
+    #         print('[{}] Failed to create testrun: "{}"'.format(TESTRAIL_PREFIX, error))
+    #     else:
+    #         self.testrun_id = response['id']
+    #         print('[{}] New testrun created with name "{}" and ID={}'.format(TESTRAIL_PREFIX,
+    #                                                                          testrun_name,
+    #                                                                          self.testrun_id))
+
+
+def get_tests_info(items):
+    """
+    Возвращает кортеж тестов с информацией
+    Return Tuple of Pytest nodes and TestRail ids from pytests markers"""
+    tests_with_info = []  # Кортеж тестов c информацией
+    for item in items:
+        data = [item.location[0],  # Полный путь к тесту
+                item.module.__name__,  # Имя файла
+                item.name,  # Имя теста
+                item.location[1],  # Строка на которой находится тест
+                item.own_markers,  # Список маркеров теста
+                inspect.getsource(item.obj),  # Полный текст теста
+                item.nodeid  # Заголовок теста
+                ]
+        tests_with_info.append(data)
+    # КОСТЫЛЬ ДЛЯ ПЕРЕВОРОТА кортежа
+    reversed_tests_with_info = []  # Перевернутый кортеж тестов c информацией
+    for item in reversed(tests_with_info):
+        reversed_tests_with_info.append(item)
+    return reversed_tests_with_info
+
+
+# def get_collected_testes():
+#     return TestRailAPISingle.list_cases_id
 
 
 def get_spaces(string):
