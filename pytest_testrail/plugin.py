@@ -59,13 +59,130 @@ class TestRailAPISingle(TestRailAPI):
     SECTION_ID = 1  # или же group_id
     CASE_TAG = '@Testrail.case_id'  #
 
-    def __init__(self):
-        super().__init__(CONFIG.TEST_RAIL_URL, CONFIG.TEST_RAIL_EMAIL, CONFIG.TEST_RAIL_PASSWORD, verify=False)
+    def __init__(self, project_id, include_all, run_id=0, milestone_id=None):
+        super().__init__(CONFIG.TESTRAIL_URL, CONFIG.TESTRAIL_EMAIL, CONFIG.TESTRAIL_PASSWORD, verify=False)
 
-        self.milestone_id = 0  # type: int
-        self.run_id = 0  # type: int
-        self.project_id = 1
-        self.list_cases_id = []
+        self.project_id = project_id
+        self.include_all = include_all
+        self.run_id = run_id
+        self.milestone_id = milestone_id
+
+
+    def rewrite_test_files(cls, items):
+        """Дописывает тестам маркер с case_id"""
+        list_cases_id = []  # id тестов
+        # Перебор списка всех тестов с информацией
+        for item in items:
+            test_location = item[0]  # Полный путь к тесту
+            test_line = item[1]  # Строка на которой находится тест
+            list_test_markers = item[2]  # Список маркеров теста
+            source_code = item[3]  # Полный текст теста
+            title = item[4]  # Заголовок теста
+            testrail_case_id = 0  # case_id для TestRail
+
+            find_case_id_marker = False  # Проверка найден ли marker с case_id
+            param_with_case_id = False
+
+            # Перебираем маркеры текущего теста и ищем маркер case_id с аргументом id
+            for marker in list_test_markers:
+                if marker.name == "case_id" and marker.args[0] != "":
+                    find_case_id_marker = True
+                    break
+
+                # Проверка если тест параметризированный есть ли в нем case_id
+                # Если есть маркер parametrize
+                if marker.name == "parametrize":
+                    file = open(test_location, 'r', encoding="utf8")
+                    lines = [line for line in file]  # Все стройки файла
+                    needed_line = lines[test_line]
+                    if cls.CASE_TAG in needed_line:
+                        param_with_case_id = True
+                    file.close()
+
+            # Если есть маркер case_id с аргументом id
+            if find_case_id_marker == True:
+                testrail_case_id = marker.args[0]
+                print(f'Данный кейс уже имеет case_id({testrail_case_id})')
+
+                # Обновление заголовка у кейса в TestRail
+                cls.cases.update_case(testrail_case_id, title=title)
+                list_cases_id.append(testrail_case_id)
+            # Если маркера case_id нет
+            else:
+
+                # Создание кейса в TestRail
+                # Если параметризированный тест не имеет case_id
+
+                # hsdkfhsd = []
+                # hsdkfhsd[0] = {
+                #     "content": "Open home page",
+                #     "additional_info": "",
+                #     "expected": "",
+                #     "refs": ""
+                # }
+                # hsdkfhsd[1] = {
+                #     "content": "Open home page",
+                #     "additional_info": "",
+                #     "expected": "",
+                #     "refs": ""
+                # }
+                custom_steps_separated = [
+                    {
+                        "content": "Open home page",
+                        "additional_info": "",
+                        "expected": "",
+                        "refs": ""
+                    },
+                    {
+                        "content": "[54546]",
+                        "additional_info": "",
+                        "expected": "",
+                        "refs": ""
+                    }
+                ]
+                if param_with_case_id == False:
+                    print('Тест без case_id. Создание case_id в TestRail...')
+                    case = cls.cases.add_case(
+                        section_id=cls.SECTION_ID, title=title,
+                        template_id=cls.TEMPLATE_ID_STEPS, type_id=cls.TYPE_ID_AUTOMATED,
+                        custom_tcstatus=cls.STATUS_ACTUAL, custom_steps=source_code,
+                        custom_steps_separated=custom_steps_separated)
+                    testrail_case_id = case.get('id')
+                    list_cases_id.append(testrail_case_id)
+
+                    # Добавление маркера case_id в файл
+                    file = open(test_location, 'r', encoding="utf8")
+                    lines = [line for line in file]  # Все стройки файла
+                    lines[
+                        test_line - 1] = f'\n{get_spaces(lines[test_line])}{lines[test_line - 1].replace(lines[test_line - 1], cls.CASE_TAG)}({str(testrail_case_id)})\n'
+                    with open(test_location, 'w', encoding="utf8") as file:
+                        file.write(''.join(lines))
+        return list_cases_id
+
+    def create_test_run(self, include_all, case_ids, milestone_id):
+        """
+        Создание тестового прогона
+        Create testrun with ids collected from markers.
+
+        :param tr_keys: collected testrail ids.
+        """
+        data = {
+            'include_all': include_all,
+            'case_ids': case_ids,
+            'milestone_id': milestone_id
+            }
+        project_id = 1
+        run = self.runs.add_run(project_id, **data)
+
+        #print('[{}] New testrun created with name "{}" and ID={}'.format(CONFIG.TESTRAIL_AUTOTEST_PREFIX, 234234))
+        return run.get('id')
+
+
+
+
+
+
+
 
     @pytest.hookimpl(trylast=True)
     def pytest_collection_modifyitems(self, session, config, items):
@@ -74,119 +191,23 @@ class TestRailAPISingle(TestRailAPI):
 
             sajkdhkashdka = get_tests_info(items)  # Перевернутый кортеж тестов c информацией
 
-            section_id = self.SECTION_ID  # group_id
-            case_tag = self.CASE_TAG
-            list_cases_id = []  # Список id всех собранных тестов
+            test_case_ids = self.rewrite_test_files(sajkdhkashdka)
 
-            for item in sajkdhkashdka:
-                print(item[0])
+            print(f'Список всех найденных case_id - {test_case_ids}')
+            self.run_id = self.create_test_run(
+                self.include_all,
+                test_case_ids,
+                self.milestone_id
+            )
 
-            # Перебор списка всех тестов с информацией
-            for item in sajkdhkashdka:
-                test_location = item[0]  # Полный путь к тесту
-                file_name = item[1]  # Имя файла
-                test_name = item[2]  # Имя теста
-                test_line = item[3]  # Строка на которой находится тест
-                list_test_markers = item[4]  # Список маркеров теста
-                source_code = item[5]  # Полный текст теста
-                title = item[6]  # Заголовок теста
-                # title = f'{test_location} | {test_class}{test_name}'  # Генерируемый заголовок для TestRail
-                testrail_case_id = 0  # case_id для TestRail
 
-                print(f'\nПУТЬ - {test_location}\n'
-                      f'ИМЯ ФАЙЛА - {file_name}\n'
-                      f'ИМЯ КЕЙСА - {test_name}\n'                      
-                      f'СТРОКА - {test_line}\n'
-                      f'СПИСОК МАРКЕРОВ - {list_test_markers}\n'
-                      f'ПОЛНЫЙ ТЕКСТ ТЕСТА - \n{source_code}'
-                      )
+            # milestone_name = self.milestones.get_milestone(self.milestone_id)
+            # run = self.runs.add_run(
+            #
+            # self.runs.update_run(self.run_id, case_ids=list_cases_id)
+            # self.runs.close_run(self.run_id)
+            # self.list_cases_id = list_cases_id
 
-                find_case_id_marker = False  # Проверка найден ли marker с case_id
-                param_with_case_id = False
-
-                # Перебираем маркеры текущего теста и ищем маркер case_id с аргументом id
-                for marker in list_test_markers:
-                    if marker.name == "case_id" and marker.args[0] != "":
-                        find_case_id_marker = True
-                        break
-                # Проверка если тест параметризированный есть ли в нем case_id
-                    # Если есть маркер parametrize
-                    if marker.name == "parametrize":
-                        file = open(test_location, 'r', encoding="utf8")
-                        lines = [line for line in file]  # Все стройки файла
-                        needed_line = lines[test_line]
-                        if case_tag in needed_line:
-                            param_with_case_id = True
-                        file.close()
-
-                # Если есть маркер case_id с аргументом id
-                if find_case_id_marker == True:
-                    testrail_case_id = marker.args[0]
-                    print(f'Данный кейс уже имеет case_id({testrail_case_id})')
-
-                    # Обновление заголовка у кейса в TestRail
-                    self.cases.update_case(testrail_case_id, title=title)
-                    list_cases_id.append(testrail_case_id)
-                # Если маркера case_id нет
-                else:
-
-                    # Создание кейса в TestRail
-                    # Если параметризированный тест не имеет case_id
-
-                    # hsdkfhsd = []
-                    # hsdkfhsd[0] = {
-                    #     "content": "Open home page",
-                    #     "additional_info": "",
-                    #     "expected": "",
-                    #     "refs": ""
-                    # }
-                    # hsdkfhsd[1] = {
-                    #     "content": "Open home page",
-                    #     "additional_info": "",
-                    #     "expected": "",
-                    #     "refs": ""
-                    # }
-                    custom_steps_separated = [
-                        {
-                            "content": "Open home page",
-                            "additional_info": "",
-                            "expected": "",
-                            "refs": ""
-                        },
-                        {
-                            "content": "[54546]",
-                            "additional_info": "",
-                            "expected": "",
-                            "refs": ""
-                        }
-                    ]
-                    if param_with_case_id == False:
-                        print('Тест без case_id. Создание case_id в TestRail...')
-                        case = self.cases.add_case(
-                            section_id=section_id, title=title,
-                            template_id=self.TEMPLATE_ID_STEPS, type_id=self.TYPE_ID_AUTOMATED,
-                            custom_tcstatus=self.STATUS_ACTUAL, custom_steps=source_code, custom_steps_separated=custom_steps_separated)
-                        testrail_case_id = case.get('id')
-                        list_cases_id.append(testrail_case_id)
-
-                        # Добавление маркера case_id в файл
-                        file = open(test_location, 'r', encoding="utf8")
-                        lines = [line for line in file]  # Все стройки файла
-                        lines[test_line - 1] = f'\n{get_spaces(lines[test_line])}{lines[test_line - 1].replace(lines[test_line - 1], case_tag)}({str(testrail_case_id)})\n'
-                        with open(test_location, 'w', encoding="utf8") as file:
-                            file.write(''.join(lines))
-
-            print(f'Список всех найденных case_id - {list_cases_id}')
-        self.milestone_id = 1
-        milestone_name = self.milestones.get_milestone(self.milestone_id)
-        run = self.runs.add_run(
-            self.project_id,
-            name=f'{datetime.datetime.now()}', #name=f'{CONFIG.TEST_RAIL_AUTOTEST_PREFIX} {milestone_name} ___ {datetime.datetime.now()}',
-            milestone_id=self.milestone_id, include_all=False)
-        self.run_id = run.get('id')
-        self.runs.update_run(self.run_id, case_ids=list_cases_id)
-        self.runs.close_run(self.run_id)
-        self.list_cases_id = list_cases_id
 
     # def after(self):
     #     if not self.milestone_id:
@@ -198,37 +219,6 @@ class TestRailAPISingle(TestRailAPI):
     #             status_id_case = TESTRAIL_TEST_STATUS(5)
     #         self.results.add_result_for_case(self.run_id, case_id, status_id=status_id_case)
 
-    # def create_test_run(self, project_id, suite_id, include_all,
-    #                     testrun_name, tr_keys, milestone_id, description=''):
-    #     """
-    #     Создание тестового прогона
-    #     Create testrun with ids collected from markers.
-    #
-    #     :param tr_keys: collected testrail ids.
-    #     """
-    #     data = {
-    #         'suite_id': suite_id,
-    #         'name': testrun_name,
-    #         'description': description,
-    #         'assignedto_id': assign_user_id,
-    #         'include_all': include_all,
-    #         'case_ids': tr_keys,
-    #         'milestone_id': milestone_id
-    #     }
-    #
-    #     response = self.client.send_post(
-    #         ADD_TESTRUN_URL.format(project_id),
-    #         data,
-    #         cert_check=self.cert_check
-    #     )
-    #     error = self.client.get_error(response)
-    #     if error:
-    #         print('[{}] Failed to create testrun: "{}"'.format(TESTRAIL_PREFIX, error))
-    #     else:
-    #         self.testrun_id = response['id']
-    #         print('[{}] New testrun created with name "{}" and ID={}'.format(TESTRAIL_PREFIX,
-    #                                                                          testrun_name,
-    #                                                                          self.testrun_id))
 
 
 def get_tests_info(items):
@@ -238,8 +228,8 @@ def get_tests_info(items):
     tests_with_info = []  # Кортеж тестов c информацией
     for item in items:
         data = [item.location[0],  # Полный путь к тесту
-                item.module.__name__,  # Имя файла
-                item.name,  # Имя теста
+                # item.module.__name__,  # Имя файла
+                # item.name,  # Имя теста
                 item.location[1],  # Строка на которой находится тест
                 item.own_markers,  # Список маркеров теста
                 inspect.getsource(item.obj),  # Полный текст теста
@@ -255,7 +245,6 @@ def get_tests_info(items):
 
 # def get_collected_testes():
 #     return TestRailAPISingle.list_cases_id
-
 
 def get_spaces(string):
     space_prefix = "    "

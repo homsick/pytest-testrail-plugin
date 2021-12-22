@@ -21,12 +21,15 @@ class Config:
 
         # Описание извлеченных параметров смотреть в файле config.ini
         section = 'TESTRAIL'
-        self.TEST_RAIL_URL: str = config_get(config.get, section, 'URL')
-        self.TEST_RAIL_EMAIL: str = config_get(config.get, section, 'EMAIL')
-        self.TEST_RAIL_PASSWORD: str = config_get(config.get, section, 'PASSWORD')
-        self.TEST_RAIL_TAG_GROUP_ID: str = config_get(config.get, section, 'TAG_GROUP_ID')
-        self.TEST_RAIL_TAG_CASE_ID: str = config_get(config.get, section, 'TAG_CASE_ID')
-        self.TEST_RAIL_AUTOTEST_PREFIX: str = config_get(config.get, section, 'AUTOTEST_PREFIX')
+        self.TESTRAIL_URL: str = config_get(config.get, section, 'URL')
+        self.TESTRAIL_EMAIL: str = config_get(config.get, section, 'EMAIL')
+        self.TESTRAIL_PASSWORD: str = config_get(config.get, section, 'PASSWORD')
+        self.TESTRAIL_TAG_GROUP_ID: str = config_get(config.get, section, 'TAG_GROUP_ID')
+        self.TESTRAIL_TAG_CASE_ID: str = config_get(config.get, section, 'TAG_CASE_ID')
+        self.TESTRAIL_AUTOTEST_PREFIX: str = config_get(config.get, section, 'AUTOTEST_PREFIX')
+        self.TESTRAIL_MILESTONE_ID: str = config_get(config.get, section, 'MILESTONE_ID')
+        self.TESTRAIL_SECTION_ID: str = config_get(config.get, section, 'SECTION_ID')
+        self.TESTRAIL_PROJECT_ID: str = config_get(config.get, section, 'PROJECT_ID')
 
 
 CONFIG: Config = Config()
