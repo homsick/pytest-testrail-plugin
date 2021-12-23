@@ -144,10 +144,13 @@ class TestRailAPISingle(TestRailAPI):
                     with open(test_location, 'w', encoding="utf8") as file:
                         file.write(''.join(lines))
 
-                    print(mmmmmmmmmmmmmm.own_markers)
-                    print(mmmmmmmmmmmmmm.add_marker(pytest.mark.case_id(testrail_case_id)))
-                    print(mmmmmmmmmmmmmm.own_markers)
-                    print(list_test_markers)
+
+                    if 'callspec' in dir(mmmmmmmmmmmmmm):
+                        mmmmmmmmmmmmmm.callspec.metafunc.definition.add_marker(pytest.mark.case_id(testrail_case_id))
+                        print(mmmmmmmmmmmmmm.callspec.metafunc.definition.own_markers)
+                    else:
+                        mmmmmmmmmmmmmm.add_marker(pytest.mark.case_id(testrail_case_id))
+                    #print(list_test_markers)
         return list_cases_id
 
     def create_test_run(self, project_id, testrun_name, milestone_id, case_ids, include_all):
@@ -176,7 +179,7 @@ class TestRailAPISingle(TestRailAPI):
 
         self.runs.close_run(testrun_id)
 
-    @pytest.hookimpl(tryfirst=True)
+    @pytest.hookimpl(trylast=True)
     def pytest_collection_modifyitems(self, session, config, items):
         urllib3.disable_warnings()
         if config.getoption('tr_add_cases'):
@@ -206,7 +209,6 @@ class TestRailAPISingle(TestRailAPI):
         rep = outcome.get_result()
         if rep.when == 'call':
             checker_test_parametize = False  # Чекер параметризированный ли кейс
-
             case_id = [mark.args[0] for mark in item.iter_markers(name="case_id")]
             test_result = rep.outcome
             if test_result == "passed":
@@ -217,7 +219,9 @@ class TestRailAPISingle(TestRailAPI):
 
             if 'callspec' in dir(item):
                 for ffffff in enumerate(self.test_results):
+                    case_id = [mark.args[0] for mark in item.callspec.metafunc.definition.iter_markers(name="case_id")]
                     if ffffff[1][0] == case_id:
+                        self.test_results[ffffff[0]][0] = case_id
                         self.test_results[ffffff[0]][2].append(test_result)
                         checker_test_parametize = True
             if checker_test_parametize == False:
@@ -225,7 +229,7 @@ class TestRailAPISingle(TestRailAPI):
                         steps_result,
                         [test_result]]
                 self.test_results.append(data)
-            print(self.test_results)
+
 
     @pytest.hookimpl(trylast=True)
     def pytest_terminal_summary(self):
@@ -248,7 +252,6 @@ class TestRailAPISingle(TestRailAPI):
                             "status_id": step
                         }
                         ]
-                print(custom_step_results)
                 self.results.add_result_for_case(testrun_id, result[0][0], status_id=status_id, custom_step_results=custom_step_results)
             else:
 
