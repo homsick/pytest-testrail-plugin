@@ -21,6 +21,8 @@ class TestGroup:
         assert True
 
     @Testrail.case_id(991)
+    @allure.title('Заголовок взятый из маркера @allure.title')
+    @allure.title('Заголовок взятый из маркера @allure.title')
     @pytest.mark.parametrize("a, b, expected_result", [(5, 10, 143430), (430, 51, 150)])
     def test_something_wrong(self, a, b, expected_result):
         diff = a - b
