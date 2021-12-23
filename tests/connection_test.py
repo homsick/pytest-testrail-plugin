@@ -3,17 +3,14 @@ import pytest
 from pytest_testrail.plugin import Testrail
 
 
-@Testrail.case_id(996)
 def test_failed():
     assert False
 
 
-@Testrail.case_id(995)
 def test_passed():
     assert True
 
 
-@Testrail.case_id(1014)
 @allure.title('Заголовок взятый из маркера @allure.title')
 @allure.title('Заголовок взятый из маркера @allure.title')
 @allure.title('Заголовок взятый из маркера @allure.title')

@@ -180,18 +180,24 @@ class TestRailAPISingle(TestRailAPI):
     def pytest_collection_modifyitems(self, session, config, items):
         urllib3.disable_warnings()
         if config.getoption('tr_add_cases'):
+            collected_tests = []
+            custom_steps_separated = []
             for test in items:
-                custom_steps_separated = []
+                find_marker_case_id_parent = False
                 # Для параметризированных тестов
                 if 'callspec' in dir(test):
                     markers = test.callspec.metafunc.definition.own_markers
                     for marker in markers:
                         if marker.name == "case_id":
                             find_marker_case_id_parent = True
-                            testrail_case_id = test.marker.args[0]
+                            testrail_case_id = marker.args[0]
+                            collected_tests.append(testrail_case_id)
                             break
                     # Обновление case в TestRail
                     if find_marker_case_id_parent:
+                        if testrail_case_id in collected_tests:
+
+
                         custom_steps_separated += [
                             {
                                 "content": f'{test.callspec.params}',
@@ -200,13 +206,9 @@ class TestRailAPISingle(TestRailAPI):
                                 "refs": ""
                             }
                         ]
-
                         self.cases.update_case(testrail_case_id, title=test.callspec.metafunc.definition.nodeid,
                                                custom_steps=inspect.getsource(test.obj),
                                                custom_steps_separated=custom_steps_separated)
-
-
-
                     # Создание case в TestRail
                     else:
                         custom_steps_separated = [
@@ -225,23 +227,30 @@ class TestRailAPISingle(TestRailAPI):
                             custom_steps_separated=custom_steps_separated)
                         testrail_case_id = case.get('id')
                         test.callspec.metafunc.definition.add_marker(pytest.mark.case_id(testrail_case_id))
-
-
+                        collected_tests.append(testrail_case_id)
                 # Для обычных тестов
                 else:
-                    pass
+                    print('Обычный тест без case_id. Создание case_id в TestRail...')
+                    case = self.cases.add_case(
+                            section_id=self.SECTION_ID, title=test.nodeid,
+                            template_id=self.TEMPLATE_ID_STEPS, type_id=self.TYPE_ID_AUTOMATED,
+                            custom_tcstatus=self.STATUS_ACTUAL, custom_steps=inspect.getsource(test.obj),
+                            custom_steps_separated=custom_steps_separated)
+                    testrail_case_id = case.get('id')
+                    print(f'Создан тест с case_id({testrail_case_id})')
+                    collected_tests.append(testrail_case_id)
 
 
 
 
 
 
-                if 'callspec' in dir(test):
-                    for marker in test.callspec.metafunc.definition.iter_markers(name="case_id"):
-                        if marker.name == "case_id" and marker.args[0] != "":
-                            print("test.callspec.metafunc.definition.own_markers")
-                        else:
-                            test.callspec.metafunc.definition.add_marker(pytest.mark.case_id(5))
+                # if 'callspec' in dir(test):
+                #     for marker in test.callspec.metafunc.definition.iter_markers(name="case_id"):
+                #         if marker.name == "case_id" and marker.args[0] != "":
+                #             print("test.callspec.metafunc.definition.own_markers")
+                #         else:
+                #             test.callspec.metafunc.definition.add_marker(pytest.mark.case_id(5))
 
 
 
@@ -371,8 +380,8 @@ class TestRailAPISingle(TestRailAPI):
     @pytest.hookimpl(trylast=True)
     def pytest_terminal_summary(self):
         urllib3.disable_warnings()
-        self.add_results(self.testrun_id)
-        self.close_test_run(self.testrun_id)
+        #self.add_results(self.testrun_id)
+        #self.close_test_run(self.testrun_id)
 
 
     def add_results(self, testrun_id):
