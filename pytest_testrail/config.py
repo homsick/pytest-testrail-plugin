@@ -29,7 +29,7 @@ class Config:
         self.TESTRAIL_AUTOTEST_PREFIX: str = config_get(config.get, section, 'AUTOTEST_PREFIX')
         self.TESTRAIL_MILESTONE_ID: str = config_get(config.get, section, 'MILESTONE_ID')
         self.TESTRAIL_SECTION_ID: str = config_get(config.get, section, 'SECTION_ID')
-        self.TESTRAIL_PROJECT_ID: str = config_get(config.get, section, 'PROJECT_ID')
+        self.TESTRAIL_PROJECT_ID: int = config_get(config.get, section, 'PROJECT_ID')
 
 
 CONFIG: Config = Config()

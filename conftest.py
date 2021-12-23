@@ -11,5 +11,5 @@ def pytest_addoption(parser):
 
 def pytest_configure(config):
     if config.getoption('--tr_add_cases'):
-        config.pluginmanager.register(TestRailAPISingle(project_id=CONFIG.TESTRAIL_PROJECT_ID,
+        config.pluginmanager.register(TestRailAPISingle(tr_name=None, project_id=CONFIG.TESTRAIL_PROJECT_ID,
                                                         milestone_id=CONFIG.TESTRAIL_MILESTONE_ID, include_all=False))
