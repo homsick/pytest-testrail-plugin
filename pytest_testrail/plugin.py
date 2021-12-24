@@ -33,6 +33,7 @@ def rewrite_test_file(path, line, testrail_case_id):
     """ Перезаписывание тестового файла """
     file = open(path, 'r', encoding="utf8")
     lines = [line for line in file]  # Все строки файла
+    file.close()
     # 1 Получение количества пробелов на строке ниже
     # 2 Замена текущей строки
     # 3 Добавление case_id
@@ -41,6 +42,7 @@ def rewrite_test_file(path, line, testrail_case_id):
                   f'({testrail_case_id})\n'
     with open(path, 'w', encoding="utf8") as file:
         file.write(''.join(lines))
+        file.close()
 
 
 class TestRailAPISingle(TestRailAPI):
@@ -83,7 +85,7 @@ class TestRailAPISingle(TestRailAPI):
                     markers_child = test.own_markers
                     for marker in markers_child:
                         if marker.name == "allure_display_name":
-                            title = marker.args[0]
+                            title = f'{path}::{marker.args[0]}'
                         if marker.name == "case_id":
                             testrail_case_id = marker.args[0]
                             if not testrail_case_id in collected_tests:
@@ -141,9 +143,9 @@ class TestRailAPISingle(TestRailAPI):
                     title = test.nodeid
                     markers_simple = test.own_markers
                     for marker in markers_simple:
+                        if marker.name == "allure_display_name":
+                            title = f'{path}::{marker.args[0]}'
                         if marker.name == "case_id":
-                            if marker.name == "allure_display_name":
-                                title = marker.args[0]
                             testrail_case_id = marker.args[0]
                             find_marker_case_id = True
                     # Обновление обычного теста в TestRail
@@ -185,6 +187,7 @@ class TestRailAPISingle(TestRailAPI):
         """ Сбор результатов тестов """
         outcome = yield
         report = outcome.get_result()  # Отчёт с результатами теста
+        print(report)
         if report.when == 'call':
             parameterized_test = False
             status_id = PYTEST_TO_TESTRAIL_STATUS[report.outcome]

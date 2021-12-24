@@ -3,17 +3,17 @@ import pytest
 from pytest_testrail.plugin import testrail
 
 
-@testrail.case_id(2245)
+@testrail.case_id(2287)
 def test_failed():
     assert False
 
-
-@testrail.case_id(2246)
+@testrail.case_id(2288)
+@allure.title('Заголовок взятый из маркера @allure.title')
 def test_passed():
     assert True
 
 
-@testrail.case_id(2247)
+@testrail.case_id(2289)
 @allure.title('Заголовок взятый из маркера @allure.title')
 @pytest.mark.parametrize('common_arg2', [10000, 7887])
 @pytest.mark.parametrize(("n", "expected"), [(10000, 20000), pytest.param(1, 10001), (2, 3)])
