@@ -1,36 +1,28 @@
 import allure
 import pytest
 
-from pytest_testrail.plugin import Testrail
-
-
-# @Testrail.case_id(488)
-# def test_bar():
-#     pass
+from pytest_testrail.plugin import testrail
 
 
 class TestGroup:
 
+    @testrail.case_id(2248)
     @allure.title('Заголовок взятый из маркера @allure.title')
     def test_the_power(self):
-      print(self)
+        assert True
 
+    @testrail.case_id(2249)
     def test_something_else(self):
         assert True
 
-    @pytest.mark.parametrize("a, b, expected_result", [(5, 10, 143430), (430, 51, 150)])
-    def test_something_wrong(self, a, b, expected_result):
-        diff = a - b
-        assert diff == expected_result
+    @testrail.case_id(2250)
+    @pytest.mark.parametrize("ss, ff, frrr", [(5, 10, 45444), (430, 51, 14394545454526), (6666666, 777777777, 21)])
+    @pytest.mark.parametrize("a, b, expected_result", [(5, 10, 143430), (430, 51, 150), (34857734, 324234, 234324)])
+    def test_something_wrong(self, a, b, expected_result, ss, ff, frrr):
+        assert a + b + expected_result + ss + ff == frrr
 
 
-@pytest.mark.luboi
-def test_foo():
-    x = 1+3
-    zhopa = x+21
-    assert zhopa == 2
-
-
+@testrail.case_id(2251)
 def test_functionality1():
     print("World")
     assert True
